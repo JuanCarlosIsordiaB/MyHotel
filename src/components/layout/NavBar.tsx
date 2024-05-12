@@ -4,6 +4,7 @@ import { UserButton, useAuth} from "@clerk/nextjs";
 import Container from "../Container";
 import Link from "next/link";
 import SearchInput from "../SearchInput";
+import { ThemeToggle } from "../theme-toggle";
 
 
 
@@ -21,7 +22,7 @@ export const NavBar = () => {
                     <Link href='/' className="font-bold cursor-pointer p-2 text-indigo-600">My<span className="">Hotel</span></Link>
                     <SearchInput />
                     <div className="flex gap-3 items-center ">
-                        <div>theme</div>
+                        <div><ThemeToggle /></div>
                         <UserButton afterSignOutUrl="/" />
                         {
                             !userId && 
