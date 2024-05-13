@@ -15,7 +15,7 @@ export const NavBar = () => {
         <div className="flex justify-between">
           <Link
             href="/"
-            className="font-bold cursor-pointer p-2 text-indigo-600"
+            className="font-black cursor-pointer p-2 text-indigo-600"
           >
             My<span className="">Hotel</span>
           </Link>
