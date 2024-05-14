@@ -17,7 +17,7 @@ model Hotel {
   title     String
   description String
   image       String
-  counrty     String
+  country     String
   state       String
   city        String
   address     String
