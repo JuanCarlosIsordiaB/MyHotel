@@ -23,6 +23,7 @@ import { useToast } from "../ui/use-toast";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import { Loader2, XCircle } from "lucide-react";
+import axios from "axios";
 
 
 interface AddHotelFormProps {
@@ -88,7 +89,25 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
     console.log(values);
   }
   const handleImageDelete = (image: string) => {
-
+    setImageIsDeleting(true);
+    const imageKey = image.substring(image.lastIndexOf("/") + 1);
+    axios.post('/api/uploadthing/delete', {imageKey} ).then((res) => {
+      if(res.data.success){
+        setImage('');
+        setImageIsDeleting(false);
+        toast({
+          variant: "success",
+          description: "🎉 Image Deleted",
+        })
+      }
+    }).catch(() => {
+      toast({
+        variant: "destructive",
+        description: " ERROR - Image Delete Failed",
+      })
+    }).finally(() => {
+      setImageIsDeleting(false);
+    });
   }
   return (
     <Form {...form}>
@@ -276,7 +295,7 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
                       <div className="relative max-w-[400px] min-w-[200px] max-h-[400px] min-h-[200px] mt-4">
                         <Image fill src={image}alt='Hotel Image' className='object-contain' />
                         <Button onClick={() => handleImageDelete(image)} type="button" size='icon' variant='ghost' className="absolute right-[-12px] top-0">
-                          {imageIsDeleting ? <Loader2/> : <XCircle />}
+                          {imageIsDeleting ? <Loader2/> : <XCircle className="text-indigo-800" />}
                         </Button>
                       </div>
                     ) : (
