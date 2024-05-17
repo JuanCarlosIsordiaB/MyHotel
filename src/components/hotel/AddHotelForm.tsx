@@ -24,6 +24,8 @@ import Image from "next/image";
 import { Button } from "../ui/button";
 import { Loader2, XCircle } from "lucide-react";
 import axios from "axios";
+import useLocation from "@/hooks/useLocation";
+import { ICity, IState } from "country-state-city";
 
 
 interface AddHotelFormProps {
@@ -61,7 +63,11 @@ const formSchema = z.object({
 export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
   const [image, setImage] = useState<string | undefined>(hotel?.image);
   const [imageIsDeleting, setImageIsDeleting] = useState(false);
+  const [states, setStates] = useState<IState[]>([]);
+  const [cities, setCities] = useState<ICity[]>([]);
+  
   const {toast} = useToast();
+  const {getAllCountries, getCountryByCode, getStateByCode, getCountryStates, getCityByName} = useLocation();
 
 
   const form = useForm<z.infer<typeof formSchema>>({
