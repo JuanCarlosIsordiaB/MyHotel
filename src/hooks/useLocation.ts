@@ -1,5 +1,5 @@
 import {Country, State, City} from 'country-state-city'
-import { get } from 'http';
+
 
 
 const useLocation = () => {
@@ -16,8 +16,8 @@ const useLocation = () => {
         return State.getAllStates().filter((state) => state.countryCode === countryCode);
     }
 
-    const getCityByName = (countryCode: string, stateCode: string, cityName: string) => {
-        return City.getCitiesOfState(countryCode, stateCode).find((city) => city.name === cityName);
+    const getStateCities = (countryCode: string, stateCode?: string) => {
+        return City.getAllCities().filter((city) => city.countryCode === countryCode && city.stateCode === stateCode);
     }
 
     return {
@@ -25,7 +25,7 @@ const useLocation = () => {
         getCountryByCode,
         getStateByCode,
         getCountryStates,
-        getCityByName
+        getStateCities
     }
 }
 export default useLocation;
