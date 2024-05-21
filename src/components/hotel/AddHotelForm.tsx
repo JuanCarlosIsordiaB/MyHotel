@@ -136,6 +136,22 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
     setIsLoading(true);
     if (hotel) {
       // Update Hotel
+      axios.patch(`/api/hotel/${hotel.id}`, values).then((res) => {
+        toast({
+          variant: "success",
+          description: "🎉 Hotel Updated",
+        });
+        router.push(`/hotel/${res.data.id}`);
+        setIsLoading(false);
+      
+      }).catch((error) => {
+        console.log("ERROR at /api/hotel:id PATCH: ", error);
+        toast({
+          variant: "destructive",
+          description: "ERROR - Hotel Not Updated",
+        });
+        setIsLoading(false);
+      });
     } else {
       // Create Hotel
       axios
