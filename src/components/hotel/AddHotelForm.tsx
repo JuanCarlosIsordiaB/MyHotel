@@ -32,6 +32,7 @@ import { Loader2, Pencil, PencilLine, XCircle } from "lucide-react";
 import axios from "axios";
 import useLocation from "@/hooks/useLocation";
 import { ICity, IState } from "country-state-city";
+import { useRouter } from "next/navigation";
 
 interface AddHotelFormProps {
   hotel: HotelWithRooms | null;
@@ -81,6 +82,7 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
   const countries = getAllCountries();
 
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -131,8 +133,30 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
   }, [form.watch("country"), form.watch("state")]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("Hola");
-    console.log(values);
+    setIsLoading(true);
+    if (hotel) {
+      // Update Hotel
+    } else {
+      // Create Hotel
+      axios
+        .post("/api/hotel", values)
+        .then((res) => {
+          toast({
+            variant: "success",
+            description: "🎉 Hotel Created",
+          });
+          router.push(`/hotel/${res.data.id}`);
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.log("ERROR at /api/hotel POST: ", error);
+          toast({
+            variant: "destructive",
+            description: "ERROR - Hotel Not Created",
+          });
+          setIsLoading(false);
+        });
+    }
   }
 
   const handleImageDelete = (image: string) => {
@@ -544,7 +568,7 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
                     </>
                   ) : (
                     <>
-                      <PencilLine className="mr-2 h-4 w-4" />
+                      <PencilLine className="mr-2 h-4 w-4" /> Update
                     </>
                   )}
                 </Button>
