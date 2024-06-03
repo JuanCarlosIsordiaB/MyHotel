@@ -28,7 +28,7 @@ import { UploadButton } from "../uploadthing";
 import { useToast } from "../ui/use-toast";
 import Image from "next/image";
 import { Button } from "../ui/button";
-import { Loader2, Pencil, PencilLine, XCircle } from "lucide-react";
+import { Eye, Loader2, Pencil, PencilLine, Trash, XCircle } from "lucide-react";
 import axios from "axios";
 import useLocation from "@/hooks/useLocation";
 import { ICity, IState } from "country-state-city";
@@ -72,6 +72,7 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
   const [states, setStates] = useState<IState[]>([]);
   const [cities, setCities] = useState<ICity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isHotelDeleting, setIsHotelDeleting] = useState(false);
   const {
     getAllCountries,
     getCountryByCode,
@@ -136,22 +137,24 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
     setIsLoading(true);
     if (hotel) {
       // Update Hotel
-      axios.patch(`/api/hotel/${hotel.id}`, values).then((res) => {
-        toast({
-          variant: "success",
-          description: "🎉 Hotel Updated",
+      axios
+        .patch(`/api/hotel/${hotel.id}`, values)
+        .then((res) => {
+          toast({
+            variant: "success",
+            description: "🎉 Hotel Updated",
+          });
+          router.push(`/hotel/${res.data.id}`);
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.log("ERROR at /api/hotel:id PATCH: ", error);
+          toast({
+            variant: "destructive",
+            description: "ERROR - Hotel Not Updated",
+          });
+          setIsLoading(false);
         });
-        router.push(`/hotel/${res.data.id}`);
-        setIsLoading(false);
-      
-      }).catch((error) => {
-        console.log("ERROR at /api/hotel:id PATCH: ", error);
-        toast({
-          variant: "destructive",
-          description: "ERROR - Hotel Not Updated",
-        });
-        setIsLoading(false);
-      });
     } else {
       // Create Hotel
       axios
@@ -174,6 +177,32 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
         });
     }
   }
+
+  const handleDeleteHotel = async (hotel: HotelWithRooms) => {
+    setIsHotelDeleting(true);
+    const getImageKey = (src: string) =>
+      src.substring(src.lastIndexOf("/") + 1);
+
+    try {
+      const imageKey = getImageKey(hotel.image);
+      await axios.post("/api/uploadthing/delete", { imageKey });
+      await axios.delete(`/api/hotel/${hotel.id}`);
+
+      setIsHotelDeleting(false);
+      toast({
+        variant: "success",
+        description: "🎉 Hotel Deleted",
+      });
+      router.push("/hotel/new");
+    } catch (error) {
+      setIsHotelDeleting(false);
+      console.log(error);
+      toast({
+        variant: "destructive",
+        description: "Hotel cannot be deleted, try again later.",
+      });
+    }
+  };
 
   const handleImageDelete = (image: string) => {
     setImageIsDeleting(true);
@@ -571,6 +600,39 @@ export const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
               )}
             />
             <div className="flex justify-between gap-2 flex-wrap">
+              {hotel && (
+                <Button
+                  onClick={() => handleDeleteHotel(hotel)}
+                  variant="ghost"
+                  type="button"
+                  className="max-w-[150px] text-white "
+                  disabled={isHotelDeleting || isLoading}
+                >
+                  {isHotelDeleting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4" /> Deleting
+                    </>
+                  ) : (
+                    <>
+                      <Trash className="mr-2 h-4 w-4" />
+                      Delete
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {hotel && (
+                <Button
+                  onClick={() => router.push(`/hotel-details/${hotel.id}`)}
+                  type="button"
+                  variant="outline"
+                  className=""
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View
+                </Button>
+              )}
+
               {hotel ? (
                 <Button
                   type="submit"
