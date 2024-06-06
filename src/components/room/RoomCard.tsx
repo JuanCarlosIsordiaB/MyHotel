@@ -19,6 +19,7 @@ import {
   MountainIcon,
   Pencil,
   Plus,
+  Router,
   Ship,
   SunIcon,
   Trash,
@@ -30,11 +31,13 @@ import {
   Wifi,
 } from "lucide-react";
 import { Separator } from "@radix-ui/react-dropdown-menu";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import AddRoomForm from "./AddRoomForm";
+import axios from "axios";
+import { toast, useToast } from "../ui/use-toast";
 
 interface RoomCardProps {
   hotel?: Hotel & {
@@ -49,6 +52,8 @@ export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
   const [isLoading, setIslLoading] = useState(false);
 
   const pathname = usePathname();
+  const router = useRouter();
+  const {toast} = useToast();
   const isHotelDetailsPage = pathname.includes("hotel-details");
  
   const [open, setOpen] = useState(false);
@@ -57,6 +62,35 @@ export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
   const handleDialogueOpen = () => {
     setOpen((prev) => !prev);
   };
+
+  const handleRoomDelete = (room:Room) => {
+    setIslLoading(true);
+    const imageKey = room.image.substring(room.image.lastIndexOf('/')+1);
+    axios.post(`/api/uploadthing/delete`, {imageKey}).then(() => {
+        axios.delete(`/api/room/${room.id}`).then(() => {
+            router.refresh();
+            toast({
+                variant: 'success',
+                description: 'Room Deleted Successfully 🎉'
+            })
+            setIslLoading(false);
+        }).catch(() => {
+            setIslLoading(false);
+            toast({
+                variant: 'destructive',
+                description: 'Failed to delete room 😢'
+            })
+        })
+    }).catch(() => {
+        setIslLoading(false);
+        toast({
+            variant: 'destructive',
+            description: 'Failed to delete room 😢'
+        })
+    })
+
+
+  }
   return (
     <Card>
       <CardHeader>{room.title}</CardHeader>
@@ -178,7 +212,7 @@ export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
           <div>Hotel Detail Page</div>
         ) : (
           <div className="flex w-full justify-between">
-            <Button disabled={isLoading} type="button" variant="ghost">
+            <Button disabled={isLoading} type="button" variant="ghost" onClick={() => handleRoomDelete(room)}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4" />
