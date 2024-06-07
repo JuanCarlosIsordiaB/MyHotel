@@ -1,5 +1,6 @@
 
 import { HotelWithRooms } from "./AddHotelForm";
+import HotelCard from "./HotelCard";
 
 
 
