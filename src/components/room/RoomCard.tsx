@@ -28,16 +28,30 @@ import {
   Users,
   UtensilsCrossed,
   VolumeX,
+  Wand2,
   Wifi,
 } from "lucide-react";
 import { Separator } from "@radix-ui/react-dropdown-menu";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "../ui/button";
-import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+import { useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
 import AddRoomForm from "./AddRoomForm";
 import axios from "axios";
 import { toast, useToast } from "../ui/use-toast";
+import { DatePickerWithRange } from "./DateRangePicker";
+import { DateRange } from "react-day-picker";
+import { addDays, differenceInCalendarDays, set } from "date-fns";
+import { useAuth } from "@clerk/nextjs";
+import useBookRoom from "@/hooks/useBookRoom";
+import { start } from "repl";
 
 interface RoomCardProps {
   hotel?: Hotel & {
@@ -45,52 +59,134 @@ interface RoomCardProps {
   };
   room: Room;
   bookings?: Booking[];
-
-  
 }
 export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
+  const { setRoomData, paymentIntentId, setClientSecret, setPaymentIntentId } =
+    useBookRoom();
   const [isLoading, setIslLoading] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
-  const {toast} = useToast();
+  const { toast } = useToast();
   const isHotelDetailsPage = pathname.includes("hotel-details");
- 
+  const [includeBreakfast, setIncludeBreakfast] = useState(false);
+  const [bookingIsLoading, setBookingIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+  const [date, setDate] = useState<DateRange | undefined>();
+  const [totalPrice, setTotalPrice] = useState(room.roomPrice);
+  const [days, setDays] = useState(0);
+
+  const { userId } = useAuth();
+
+  useEffect(() => {
+    if (date && date.from && date.to) {
+      const dayCount = differenceInCalendarDays(date.to, date.from);
+      setDays(dayCount);
+      if (dayCount && room.roomPrice) {
+        setTotalPrice(dayCount * room.roomPrice);
+      } else {
+        setTotalPrice(room.roomPrice);
+      }
+    }
+  }, [date, room.roomPrice, includeBreakfast]);
 
   const handleDialogueOpen = () => {
     setOpen((prev) => !prev);
   };
 
-  const handleRoomDelete = (room:Room) => {
+  const handleRoomDelete = (room: Room) => {
     setIslLoading(true);
-    const imageKey = room.image.substring(room.image.lastIndexOf('/')+1);
-    axios.post(`/api/uploadthing/delete`, {imageKey}).then(() => {
-        axios.delete(`/api/room/${room.id}`).then(() => {
+    const imageKey = room.image.substring(room.image.lastIndexOf("/") + 1);
+    axios
+      .post(`/api/uploadthing/delete`, { imageKey })
+      .then(() => {
+        axios
+          .delete(`/api/room/${room.id}`)
+          .then(() => {
             router.refresh();
             toast({
-                variant: 'success',
-                description: 'Room Deleted Successfully 🎉'
-            })
+              variant: "success",
+              description: "Room Deleted Successfully 🎉",
+            });
             setIslLoading(false);
-        }).catch(() => {
+          })
+          .catch(() => {
             setIslLoading(false);
             toast({
-                variant: 'destructive',
-                description: 'Failed to delete room 😢'
-            })
-        })
-    }).catch(() => {
+              variant: "destructive",
+              description: "Failed to delete room 😢",
+            });
+          });
+      })
+      .catch(() => {
         setIslLoading(false);
         toast({
-            variant: 'destructive',
-            description: 'Failed to delete room 😢'
-        })
-    })
+          variant: "destructive",
+          description: "Failed to delete room 😢",
+        });
+      });
+  };
 
+  const handleBookRoom = () => {
+    if (!userId)
+      return toast({
+        variant: "destructive",
+        description: "You need to login to book a room",
+      });
+    if (!hotel?.userId)
+      return toast({
+        variant: "destructive",
+        description: "Hotel owner not found",
+      });
 
-  }
+    if (date?.from && date?.to) {
+      setBookingIsLoading(true);
+
+      const bookingRoomData = {
+        room,
+        totalPrice,
+        breakFastIncluded: includeBreakfast, //seraaa??
+        startDate: date.from,
+        endDate: date.to,
+      };
+      setRoomData(bookingRoomData);
+
+      fetch("/api/create-payment-intent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          booking: {
+            hotelOwnerId: hotel.userId,
+            hotelId: hotel.id,
+            roomId: room.id,
+            startDate: date.from,
+            endDate: date.to,
+            breakFastIncluded: includeBreakfast,
+            totalPrice,
+          },
+          payment_intent_id: paymentIntentId,
+        }),
+      }).then((res) => {
+        setBookingIsLoading(false);
+        if(res.status === 401){
+          return router.push('/login');
+        }
+        return res.json()
+      }).then((data) => {
+        setClientSecret(data.paymentIntent.client_secret);
+        setPaymentIntentId(data.paymentIntent.id);
+        router.push("/book-room");
+      })
+    } else {
+      toast({
+        variant: "destructive",
+        description: "Please select a date range",
+      });
+    }
+  };
   return (
     <Card>
       <CardHeader>{room.title}</CardHeader>
@@ -209,10 +305,39 @@ export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
       </CardContent>
       <CardFooter>
         {isHotelDetailsPage ? (
-          <div>Hotel Detail Page</div>
+          <div className="flex flex-col gap-6">
+            <div>
+              <div className="mb-2">
+                Select days you will spend in this room
+              </div>
+            </div>
+            <DatePickerWithRange date={date} setDate={setDate} />
+            <div>
+              Total price: <span className="font-bold">${totalPrice}</span> for{" "}
+              <span>{days}</span> Days
+            </div>
+            <Button
+              onClick={() => handleBookRoom()}
+              className="bg-indigo-800 hover:bg-indigo-700 transition-all"
+              disabled={bookingIsLoading}
+              type="button"
+            >
+              {bookingIsLoading ? (
+                <Loader2 className="mr-2 h-4 w-4" />
+              ) : (
+                <Wand2 className="mr-2 h-4 w-4" />
+              )}
+              {bookingIsLoading ? "Booking..." : "Book Room"}
+            </Button>
+          </div>
         ) : (
           <div className="flex w-full justify-between">
-            <Button disabled={isLoading} type="button" variant="ghost" onClick={() => handleRoomDelete(room)}>
+            <Button
+              disabled={isLoading}
+              type="button"
+              variant="ghost"
+              onClick={() => handleRoomDelete(room)}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4" />
@@ -226,30 +351,31 @@ export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
               )}
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
-                  <DialogTrigger>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="max-w-[150px] text-white bg-indigo-500 hover:bg-indigo-600 hover:text-white"
-                    >
-                      {" "}
-                      <Pencil className="mr-2 h-4 w-4 text-white hover:text-white" /> Update Room
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-[900px] w-[90%] rounded-md">
-                    <DialogHeader className="px-2">
-                      <DialogTitle className="text-white">Update Rooms</DialogTitle>
-                      <DialogDescription>
-                        Update details about a room in your hotel.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <AddRoomForm
-                      hotel={hotel}
-                      room={room}
-                      handleDialogueOpen={handleDialogueOpen}
-                    />
-                  </DialogContent>
-                </Dialog>
+              <DialogTrigger>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="max-w-[150px] text-white bg-indigo-500 hover:bg-indigo-600 hover:text-white"
+                >
+                  {" "}
+                  <Pencil className="mr-2 h-4 w-4 text-white hover:text-white" />{" "}
+                  Update Room
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[900px] w-[90%] rounded-md">
+                <DialogHeader className="px-2">
+                  <DialogTitle className="text-white">Update Rooms</DialogTitle>
+                  <DialogDescription>
+                    Update details about a room in your hotel.
+                  </DialogDescription>
+                </DialogHeader>
+                <AddRoomForm
+                  hotel={hotel}
+                  room={room}
+                  handleDialogueOpen={handleDialogueOpen}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </CardFooter>
