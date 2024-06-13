@@ -32,7 +32,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { Separator } from "@radix-ui/react-dropdown-menu";
-import { usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { useEffect, useState } from "react";
 import {
@@ -64,7 +64,7 @@ export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
   const { setRoomData, paymentIntentId, setClientSecret, setPaymentIntentId } =
     useBookRoom();
   const [isLoading, setIslLoading] = useState(false);
-
+  const { id } = useParams();
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
@@ -146,12 +146,13 @@ export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
       const bookingRoomData = {
         room,
         totalPrice,
-        breakFastIncluded: includeBreakfast, //seraaa??
+        breakFastIncluded: includeBreakfast,
         startDate: date.from,
         endDate: date.to,
       };
       setRoomData(bookingRoomData);
-
+      console.log("hotelId", hotel.id);
+      console.log("roomId", room.id);
       fetch("/api/create-payment-intent", {
         method: "POST",
         headers: {
@@ -160,26 +161,38 @@ export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
         body: JSON.stringify({
           booking: {
             hotelOwnerId: hotel.userId,
-            hotelId: hotel.id,
+            hotelId: hotel.id, // error aqui
             roomId: room.id,
             startDate: date.from,
             endDate: date.to,
             breakFastIncluded: includeBreakfast,
-            totalPrice,
+            totalPrice: totalPrice,
           },
           payment_intent_id: paymentIntentId,
-        }),
-      }).then((res) => {
-        setBookingIsLoading(false);
-        if(res.status === 401){
-          return router.push('/login');
-        }
-        return res.json()
-      }).then((data) => {
-        setClientSecret(data.paymentIntent.client_secret);
-        setPaymentIntentId(data.paymentIntent.id);
-        router.push("/book-room");
+        })
+        
+
       })
+        .then((res) => {
+          setBookingIsLoading(false);
+          if (res.status === 401) {
+            return router.push("/login");
+          }
+          return res.json();
+        })
+        .then((data) => {
+          setClientSecret(data.paymentIntent.client_secret);
+          setPaymentIntentId(data.paymentIntent.id);
+          router.push("/book-room");
+        })
+        .catch((error) => {
+          setBookingIsLoading(false);
+          console.error("ERROR", error.message);
+          toast({
+            variant: "destructive",
+            description: "Failed to book room",
+          });
+        });
     } else {
       toast({
         variant: "destructive",
@@ -187,7 +200,10 @@ export const RoomCard = ({ hotel, room, bookings = [] }: RoomCardProps) => {
       });
     }
   };
+  
   return (
+    
+
     <Card>
       <CardHeader>{room.title}</CardHeader>
 

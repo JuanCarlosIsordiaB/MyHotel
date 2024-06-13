@@ -46,21 +46,20 @@ const HotelDetailsClient = ({
         </div>
         <div className="md:flex mb-2 gap-2">
           <div className="bg-indigo-500 rounded-md p-2 ">
-            <h3 className="font-bold text-m text-white">
-              Location Details:
-            </h3>
-            <p className=" mb-2 text-xs text-gray-300">{hotel.locationDescription}</p>
+            <h3 className="font-bold text-m text-white">Location Details:</h3>
+            <p className=" mb-2 text-xs text-gray-300">
+              {hotel.locationDescription}
+            </p>
           </div>
           <div className="bg-indigo-500 rounded-md p-2 mt-1 md:mt-0">
             <h3 className="font-bold text-m text-white ">About this hotel:</h3>
             <p className="mb-2 text-xs text-gray-300">{hotel.description}</p>
           </div>
-
-          
         </div>
-        <h3 className="text-2xl font-bold text-indigo-500 mt-9">Hotel Amenities</h3>
+        <h3 className="text-2xl font-bold text-indigo-500 mt-9">
+          Hotel Amenities
+        </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 content-start text-sm mt-3 bg-indigo-500 p-3 rounded-md text-white">
-            
           {hotel.bar && (
             <AmenityItem>
               <MdLocalBar size={18} /> Bar
@@ -101,7 +100,9 @@ const HotelDetailsClient = ({
         <div>
           {!!hotel.rooms.length && (
             <div>
-              <h3 className=" my-4 text-2xl font-bold text-indigo-500 mt-9">Hotel Rooms:</h3>
+              <h3 className=" my-4 text-2xl font-bold text-indigo-500 mt-9">
+                Hotel Rooms:
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {hotel.rooms.map((room) => {
                   return (
